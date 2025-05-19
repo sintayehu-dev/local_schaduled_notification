@@ -133,6 +133,64 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     await permissionHandler.checkNotificationPermission();
   }
 
+    // Returns button text based on current notification permission status
+  String getPeriodicNotificationText() {
+    // Check notification permission
+    if (permissionHandler.notificationPermission == EnNotificationPermission.permanentlyDenied ||
+        permissionHandler.exactAlarmsPermission == EnNotificationPermission.permanentlyDenied) {
+      return "permanently denied please go to settings and enable notification permission";
+    }
+    
+    // Check if permissions are denied but can be requested
+    if (permissionHandler.notificationPermission == EnNotificationPermission.denied ||
+        permissionHandler.exactAlarmsPermission == EnNotificationPermission.denied) {
+      return "request notification permission";
+    }
+    
+    // All permissions granted
+    if (permissionHandler.notificationPermission == EnNotificationPermission.granted &&
+        permissionHandler.exactAlarmsPermission == EnNotificationPermission.granted) {
+      return "start periodic notification";
+    }
+    
+    return "";
+  }
+
+  // Handles button click actions based on current permission status
+  Future<void> periodicNotificationButtonAction() async {
+    // Check both required permissions
+    bool notificationPermissionGranted = 
+        permissionHandler.notificationPermission == EnNotificationPermission.granted;
+    bool exactAlarmPermissionGranted = 
+        permissionHandler.exactAlarmsPermission == EnNotificationPermission.granted;
+    
+    if (notificationPermissionGranted && exactAlarmPermissionGranted) {
+      // Both permissions granted, send notification
+      await LocalNotification.startPeriodicNotification();
+      return;
+    }
+    
+    // Request any missing permissions
+    if (!notificationPermissionGranted &&
+        permissionHandler.notificationPermission != EnNotificationPermission.permanentlyDenied) {
+      await LocalNotification.requestPermission();
+    }
+    
+    if (!exactAlarmPermissionGranted &&
+        permissionHandler.exactAlarmsPermission != EnNotificationPermission.permanentlyDenied) {
+      await LocalNotification.requestExactAlarmsPermission();
+    }
+    
+    // If any permission is permanently denied, open settings
+    if (permissionHandler.notificationPermission == EnNotificationPermission.permanentlyDenied ||
+        permissionHandler.exactAlarmsPermission == EnNotificationPermission.permanentlyDenied) {
+      openAppSettings();
+    }
+    
+    // Refresh permissions after requests
+    await permissionHandler.checkNotificationPermission();
+  }
+
   // Initializes state and sets up lifecycle observer
   @override
   void initState() {
@@ -184,11 +242,23 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
               },
               child: Text(getSimpleNotificationText()),
             ),
-            ElevatedButton(
+             ElevatedButton(
               onPressed: () async {
                 await scheduledNotificationButtonAction();
               },
               child: Text(getScheduledNotificationText()),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await periodicNotificationButtonAction();
+              },
+              child: Text(getPeriodicNotificationText()),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await LocalNotification.stopPeriodicNotification();
+              },
+              child: Text("stop periodic notification"),
             ),
           ],
         ),

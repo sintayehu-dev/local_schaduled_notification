@@ -133,5 +133,35 @@ static Future<bool?> requestExactAlarmsPermission() async {
     return null;
   }
 
+  static Future startPeriodicNotification() async {
+    const AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails(
+      'periodic_channel_id',
+      'periodic_channel_name',
+      channelDescription: 'periodic_channel_description',
+      importance: Importance.max,
+      priority: Priority.max,
+      playSound: true,
+      enableVibration: true,
+      fullScreenIntent: true,
+      category: AndroidNotificationCategory.alarm,
+    );
+    const DarwinNotificationDetails darwinNotificationDetails =
+        DarwinNotificationDetails();
+    const NotificationDetails notificationDetails = NotificationDetails(
+        android: androidNotificationDetails, iOS: darwinNotificationDetails);
+
+    await _flutterLocalNotificationsPlugin.periodicallyShow(
+      4,
+      'this is a periodic notification',
+      'this is a periodic notification body',
+      RepeatInterval.everyMinute,
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );  
+  }
+  static Future stopPeriodicNotification() async {
+    await _flutterLocalNotificationsPlugin.cancelAll();
+  }
 }
   
